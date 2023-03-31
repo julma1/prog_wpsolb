@@ -4,4 +4,4 @@
 
 | Name Surname (initials) | GUID                                     |
 | ----------------------- | ---------------------------------------- |
-| Julia Maciaszczyk       | `{BEC96229-9D08-3277-612C-448834EDE4ED}` |
+| Julia Maciaszczyk       | `{76D92F29-77BF-42D4-A8E2-6B789AC5C46A}` |
