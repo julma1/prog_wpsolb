@@ -149,7 +149,7 @@ namespace Data
         {
             while (!stop)
             {
-                stopwatch.Reset();
+                stopwatch.reset();
                 stopwatch.Start();
                 if (!stop)
                 {
