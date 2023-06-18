@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 namespace Data
 
 {
-
     internal class Ball : IBall
     {
         private readonly int size;
@@ -17,10 +16,9 @@ namespace Data
         private double newX;
         private double newY;
         private readonly double weight;
-        private readonly Stopwatch stopwatch
+        private readonly Stopwatch stopwatch;
         private bool stop;
         private readonly object locker = new object();
-
         public Ball(int identyfikator, int size, double x, double y, double newX, double newY, double weight)
         {
             id = identyfikator;
@@ -32,6 +30,7 @@ namespace Data
             this.weight = weight;
             stop = false;
             stopwatch = new Stopwatch();
+
         }
 
         public int ID { get => id; }
@@ -95,7 +94,7 @@ namespace Data
                     return;
                 }
 
-                x = value;s
+                x = value;
 
             }
         }
@@ -116,6 +115,7 @@ namespace Data
 
             }
         }
+
 
         public void SaveRequest(ConcurrentQueue<IBall> queue)
         {
