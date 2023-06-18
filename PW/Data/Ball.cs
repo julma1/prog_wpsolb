@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using System.Collections.Concurrent;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -6,21 +7,6 @@ using System.Threading.Tasks;
 namespace Data
 
 {
-    public interface IBall : INotifyPropertyChanged
-    {
-        int ID { get; }
-        int Size { get; }
-        double Weight { get; }
-        double X { get; set; }
-        double Y { get; set; }
-        double NewX { get; set; }
-        double NewY { get; set; }
-
-        void Move();
-        void CreateMovementTask(int interval);
-
-        void Stop();
-    }
 
     internal class Ball : IBall
     {
@@ -31,9 +17,9 @@ namespace Data
         private double newX;
         private double newY;
         private readonly double weight;
-        private readonly Stopwatch stopwatch = new Stopwatch();
-        private Task task;
-        private bool stop = false;
+        private readonly Stopwatch stopwatch
+        private bool stop;
+        private readonly object locker = new object();
 
         public Ball(int identyfikator, int size, double x, double y, double newX, double newY, double weight)
         {
@@ -44,14 +30,33 @@ namespace Data
             this.newX = newX;
             this.newY = newY;
             this.weight = weight;
+            stop = false;
+            stopwatch = new Stopwatch();
         }
 
         public int ID { get => id; }
         public int Size { get => size; }
+        public double Weight { get => weight; }
+
+        public void changeVelocity(double Vx, double Vy)
+        {
+            lock (locker)
+            {
+                NewX = Vx;
+                NewY = Vy;
+
+
+            }
+        }
+
         public double NewX
         {
-            get => newX;
-            set
+            get
+            {
+                lock (locker) { return newX; }
+            }
+
+            private set
             {
                 if (value.Equals(newX))
                 {
@@ -59,13 +64,15 @@ namespace Data
                 }
 
                 newX = value;
-
             }
         }
         public double NewY
         {
-            get => newY;
-            set
+            get
+            {
+                lock (locker) { return newY; }
+            }
+            private set
             {
                 if (value.Equals(newY))
                 {
@@ -73,27 +80,32 @@ namespace Data
                 }
 
                 newY = value;
-
             }
         }
         public double X
         {
-            get => x;
-            set
+            get
+            {
+                lock (locker) { return x; }
+            }
+            private set
             {
                 if (value.Equals(x))
                 {
                     return;
                 }
 
-                x = value;
-                RaisePropertyChanged();
+                x = value;s
+
             }
         }
         public double Y
         {
-            get => y;
-            set
+            get
+            {
+                lock (locker) { return y; }
+            }
+            private set
             {
                 if (value.Equals(y))
                 {
@@ -101,17 +113,25 @@ namespace Data
                 }
 
                 y = value;
-                RaisePropertyChanged();
+
             }
         }
 
-        public void Move()
+        public void SaveRequest(ConcurrentQueue<IBall> queue)
         {
-            X +=  NewX;
-            Y +=  NewY;
+            queue.Enqueue(new Ball(ID, Size, X, Y, NewX, NewY, Weight));
         }
-
-        public double Weight { get => weight; }
+        public void Move(double time, ConcurrentQueue<IBall> queue)
+        {
+            lock (locker)
+            {
+                X += NewX * time;
+                Y += NewY * time;
+                RaisePropertyChanged(nameof(X));
+                RaisePropertyChanged(nameof(Y));
+                SaveRequest(queue);
+            }
+        }
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -119,13 +139,13 @@ namespace Data
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
-        public void CreateMovementTask(int interval)
+        public Task CreateMovementTask(int interval, ConcurrentQueue<IBall> queue)
         {
             stop = false;
-            task = Run(interval);
+            return Run(interval, queue);
         }
 
-        private async Task Run(int interval)
+        private async Task Run(int interval, ConcurrentQueue<IBall> queue)
         {
             while (!stop)
             {
@@ -133,8 +153,7 @@ namespace Data
                 stopwatch.Start();
                 if (!stop)
                 {
-                    Move();
-                 
+                    Move(((interval - stopwatch.ElapsedMilliseconds) / 16), queue);
                 }
                 stopwatch.Stop();
 
